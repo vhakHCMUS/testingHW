@@ -1,0 +1,162 @@
+{
+	"info": {
+		"_postman_id": "a8f25c64-d7e8-4f3c-9b2e-21b05cabd698",
+		"name": "HW07_postman_collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"item": [
+		{
+			"name": "Update-User",
+			"item": [
+				{
+					"name": "Update User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Identify the test",
+									"const id = pm.iterationData.get('TestCaseID') || pm.iterationData.get('TestCaseId') || '';",
+									"const title = pm.iterationData.get('Title') || pm.iterationData.get('Description') || '';",
+									"",
+									"// Parse expected results from Expected_Status and Expected_Message",
+									"const expectedStatus = pm.iterationData.get('Expected_Status');",
+									"const expectedMessage = pm.iterationData.get('Expected_Message');",
+									"",
+									"const jsonText = pm.response.text();",
+									"let json;",
+									"try { json = pm.response.json(); } catch (_) { json = null; }",
+									"",
+									"// Status code assertion",
+									"if (expectedStatus) {",
+									"  pm.test(`[${id}] ${title} - status is ${expectedStatus}`, function () {",
+									"    pm.response.to.have.status(Number(expectedStatus));",
+									"  });",
+									"}",
+									"",
+									"// Message assertion",
+									"if (expectedMessage) {",
+									"  pm.test(`[${id}] ${title} - contains expected message`, function () {",
+									"    const messageFound = jsonText.includes(expectedMessage) || ",
+									"                       (json && json.message && json.message.includes(expectedMessage)) ||",
+									"                       (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage));",
+									"    pm.expect(messageFound, `Expected response to contain: ${expectedMessage}`).to.be.true;",
+									"  });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"first_name\": \"{{first_name}}\",\n  \"last_name\": \"{{last_name}}\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"{{phone}}\",\n  \"address\": {\n    \"street\": \"{{street}}\",\n    \"city\": \"{{city}}\",\n    \"state\": \"{{state}}\",\n    \"country\": \"{{country}}\",\n    \"postal_code\": \"{{postal_code}}\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{BASE_API_URL}}/users/{{user_id}}",
+							"host": [
+								"{{BASE_API_URL}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Change-Password",
+			"item": [
+				{
+					"name": "Change Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Identify the test",
+									"const id = pm.iterationData.get('TestCaseID') || pm.iterationData.get('TestCaseId') || '';",
+									"const title = pm.iterationData.get('Title') || pm.iterationData.get('Description') || '';",
+									"",
+									"// Parse expected results from Expected_Status and Expected_Message",
+									"const expectedStatus = pm.iterationData.get('Expected_Status');",
+									"const expectedMessage = pm.iterationData.get('Expected_Message');",
+									"",
+									"const jsonText = pm.response.text();",
+									"let json;",
+									"try { json = pm.response.json(); } catch (_) { json = null; }",
+									"",
+									"// Status code assertion",
+									"if (expectedStatus) {",
+									"  pm.test(`[${id}] ${title} - status is ${expectedStatus}`, function () {",
+									"    pm.response.to.have.status(Number(expectedStatus));",
+									"  });",
+									"}",
+									"",
+									"// Message assertion",
+									"if (expectedMessage) {",
+									"  pm.test(`[${id}] ${title} - contains expected message`, function () {",
+									"    const messageFound = jsonText.includes(expectedMessage) || ",
+									"                       (json && json.message && json.message.includes(expectedMessage)) ||",
+									"                       (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage));",
+									"    pm.expect(messageFound, `Expected response to contain: ${expectedMessage}`).to.be.true;",
+									"  });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"current_password\": \"{{current_password}}\",\n  \"new_password\": \"{{new_password}}\",\n  \"new_password_confirmation\": \"{{new_password_confirmation}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BASE_API_URL}}/users/change-password",
+							"host": [
+								"{{BASE_API_URL}}"
+							],
+							"path": [
+								"users",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,75 @@
+name: Run Postman API Tests 📦
+
+on:
+  push:
+    branches: [ main ]
+
+concurrency: production_environment
+
+jobs:
+  postman-tests: 
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout ⚙️
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          # Set SPRINT environment variable (use the sprint you're currently testing)
+          echo "SPRINT=sprint5" >> $GITHUB_ENV
+          echo "DISABLE_LOGGING=true" >> $GITHUB_ENV
+
+      - name: Start Docker services
+        run: |
+          docker compose -f docker-compose.yml up -d --force-recreate
+
+      - name: Wait for services to be ready
+        run: |
+          # Wait for the API service to be fully available
+          echo "Waiting for API service to be ready..."
+          timeout=120  # Maximum wait time in seconds
+          elapsed=0
+          while ! curl -s http://localhost:8091/api/status > /dev/null; do
+            if [ $elapsed -gt $timeout ]; then
+              echo "Timeout waiting for API service"
+              exit 1
+            fi
+            sleep 5
+            elapsed=$((elapsed + 5))
+            echo "Still waiting... ($elapsed seconds elapsed)"
+          done
+          echo "API service is ready!"
+
+      - name: Install Newman (Postman CLI)
+        run: npm install -g newman
+
+      - name: Run Update-User tests 👤
+        run: |
+          newman run HW07_postman_collection.json \
+            --folder "Update-User" \
+            --iteration-data users_update.csv \
+            --env-var BASE_API_URL=http://localhost:8091/api \
+            --env-var TOKEN="{{TOKEN}}" \
+            --env-var user_id="1" || echo "Update-User tests failed" >> failed_tests.txt
+
+      - name: Run Change-Password tests 🔑
+        run: |
+          newman run HW07_postman_collection.json \
+            --folder "Change-Password" \
+            --iteration-data password_change.csv \
+            --env-var BASE_API_URL=http://localhost:8091/api \
+            --env-var TOKEN="{{TOKEN}}" || echo "Change-Password tests failed" >> failed_tests.txt
+
+      - name: Check overall result ✅/❌
+        run: |
+          if [ -f failed_tests.txt ]; then
+            echo "Some Postman test suites failed:"
+            cat failed_tests.txt
+            exit 1
+          else
+            echo "All Postman test suites passed!"
+          fi
+          
+      - name: Stop Docker services
+        if: always()
+        run: docker compose down

@@ -1,0 +1,31 @@
+TestCaseID,Title,first_name,last_name,email,phone,street,city,state,country,postal_code,Expected_Status,Expected_Message
+TC001,Complete user profile update,John,Doe,john.doe@example.com,+84901234567,123 Main St,Ho Chi Minh City,HCMC,Vietnam,70000,200,success
+TC002,Minimum valid data update,Jane,Smith,jane.smith@test.com,,,,,,,,200,success
+TC003,Update with Vietnamese characters,Nguyễn,Văn Minh,nguyen.minh@gmail.com,,123 Đường Lê Lợi,Thành phố Hồ Chí Minh,HCMC,Vietnam,,200,success
+TC004,Update single field (first_name only),Updated,,,,,,,,,200,success
+TC005,Update single field (email only),,,updated.email@example.com,,,,,,,,200,success
+TC006,Update address only,,,,,,New Street,New City,New State,New Country,12345,200,success
+TC007,Update phone number only,,,,+84909876543,,,,,,200,success
+TC008,Maximum field lengths (boundary test),MaximumFirstNameAllowedInSystemMaximumFirstNameAllowedInSystemMaximumFirstNameAllowedInSystem,MaximumLastNameAllowedInSystemMaximumLastNameAllowedInSystemMaximumLastNameAllowedInSystem,,,,,,,,,200,success
+TC009,Empty first_name,,Doe,test@example.com,,,,,,,422,first_name is required
+TC010,Empty last_name,John,,test@example.com,,,,,,,422,last_name is required
+TC011,Invalid email format - missing @,John,Doe,invalid-email.com,,,,,,,422,email format is invalid
+TC012,Invalid email format - missing domain,John,Doe,user@,,,,,,,422,email format is invalid
+TC013,Invalid phone format - letters,John,Doe,john@example.com,abc123456,,,,,,422,phone format is invalid
+TC014,Phone too short,John,Doe,john@example.com,123,,,,,,422,phone length validation error
+TC015,Phone too long,John,Doe,john@example.com,123456789012345678901,,,,,,422,phone length validation error
+TC016,Exceeding field length - first_name,ThisFirstNameExceedsTheMaximumAllowedCharacterLimitInTheSystemSoItShouldGenerateAValidationErrorWhenSubmittedToTheAPIEndpoint,Doe,john@example.com,,,,,,,422,field length validation error
+TC017,Exceeding field length - email,John,Doe,thisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpointthisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpoint@example.com,,,,,,,422,field length validation error
+TC018,Invalid postal code format,John,Doe,john@example.com,,,,,,invalid-postal,422,postal code validation error
+TC019,SQL injection attempt in first_name,"'; DROP TABLE users; --",Doe,john@example.com,,,,,,,422,input sanitization
+TC020,XSS attempt in last_name,John,"<script>alert('xss')</script>",john@example.com,,,,,,,422,input sanitization
+TC021,No authentication token,John,Doe,john@example.com,,,,,,,401,unauthorized
+TC022,Invalid authentication token,John,Doe,john@example.com,,,,,,,401,token validation failed
+TC023,Expired authentication token,John,Doe,john@example.com,,,,,,,401,token expired
+TC024,Update another user's profile,John,Doe,john@example.com,,,,,,,403,forbidden
+TC025,Malformed Bearer token,John,Doe,john@example.com,,,,,,,401,malformed token
+TC026,Missing Authorization header,John,Doe,john@example.com,,,,,,,401,missing authentication
+TC027,Non-existent user ID,John,Doe,john@example.com,,,,,,,404,user not found
+TC028,Invalid user ID format,John,Doe,john@example.com,,,,,,,400,invalid user ID format
+TC029,Empty request body,,,,,,,,,,400,empty request body
+TC030,Malformed JSON,INVALID_JSON_TO_GENERATE_ERROR,,,,,,,,,400,JSON parsing error
