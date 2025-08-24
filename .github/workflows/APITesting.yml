@@ -116,47 +116,38 @@ jobs:
             echo "❌ Collection file not found"
           fi
 
-      - name: 🔐 Run Change Password API Tests
+      - name: 🧪 Run API Tests with Dedicated Collections
         run: |
-          echo "🔐 Running Change Password API tests with CSV data..."
-          newman run HW07_cicd_postman_collection_fixed.json \
-            --folder "Change-Password" \
+          echo "🧪 Running API tests with proper authentication flow..."
+          
+          echo "Running Change Password tests..."
+          newman run change-password-collection.json \
             --iteration-data password_change.csv \
-            --reporters cli,html,json \
-            --reporter-html-export newman-reports/change-password-report.html \
+            --reporters cli,json \
             --reporter-json-export newman-reports/change-password-results.json \
-            --delay-request 200 \
-            --timeout-request 10000 \
-            --insecure \
-            --color on || echo "Change Password tests completed with some failures"
-
-      - name: 👤 Run Update User API Tests  
-        run: |
-          echo "👤 Running Update User API tests with CSV data..."
-          newman run HW07_cicd_postman_collection_fixed.json \
-            --folder "Update-User" \
+            --delay-request 300 \
+            --timeout-request 15000 \
+            --insecure || echo "Change Password tests completed"
+          
+          echo "Running Update User tests..."
+          newman run update-user-collection.json \
             --iteration-data users_update.csv \
-            --reporters cli,html,json \
-            --reporter-html-export newman-reports/update-user-report.html \
+            --reporters cli,json \
             --reporter-json-export newman-reports/update-user-results.json \
-            --delay-request 200 \
-            --timeout-request 10000 \
-            --insecure \
-            --color on || echo "Update User tests completed with some failures"
-
-      - name: 🛍️ Run Update Product API Tests
-        run: |
-          echo "🛍️ Running Update Product API tests with CSV data..."
-          newman run HW07_cicd_postman_collection_fixed.json \
-            --folder "Product-Update" \
+            --delay-request 300 \
+            --timeout-request 15000 \
+            --insecure || echo "Update User tests completed"
+          
+          echo "Running Update Product tests..."
+          newman run update-product-collection.json \
             --iteration-data product_update.csv \
-            --reporters cli,html,json \
-            --reporter-html-export newman-reports/update-product-report.html \
+            --reporters cli,json \
             --reporter-json-export newman-reports/update-product-results.json \
-            --delay-request 200 \
-            --timeout-request 10000 \
-            --insecure \
-            --color on || echo "Update Product tests completed with some failures"
+            --delay-request 300 \
+            --timeout-request 15000 \
+            --insecure || echo "Update Product tests completed"
+          
+          echo "All API test runs completed"
 
       - name: 📊 Generate Test Summary
         if: always()

@@ -1,0 +1,239 @@
+{
+  "info": {
+    "_postman_id": "update-product-collection",
+    "name": "Update Product API Tests",
+    "description": "Dedicated collection for Update Product API testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{LOGIN_EMAIL}}\",\n  \"password\": \"{{LOGIN_PASSWORD}}\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_API_URL}}/users/login",
+          "host": ["{{BASE_API_URL}}"],
+          "path": ["users", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch(e) { json = {}; }",
+              "",
+              "if(json.access_token){ ",
+              "  pm.collectionVariables.set('TOKEN', json.access_token); ",
+              "  pm.test('Token acquired', function() { pm.expect(true).to.be.true; });",
+              "  console.log('Token acquired for Update Product tests');",
+              "} else { ",
+              "  pm.test('Token acquired', function() { pm.expect(false).to.be.true; });",
+              "  console.error('Failed to acquire token:', pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update Product",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{name}}\",\n  \"description\": \"{{description}}\",\n  \"price\": {{price}},\n  \"category_id\": \"{{category_id}}\",\n  \"brand_id\": \"{{brand_id}}\",\n  \"product_image_id\": \"{{product_image_id}}\",\n  \"is_location_offer\": {{is_location_offer}},\n  \"is_rental\": {{is_rental}}\n}"
+        },
+        "url": {
+          "raw": "{{BASE_API_URL}}/products/{{productId}}",
+          "host": ["{{BASE_API_URL}}"],
+          "path": ["products", "{{productId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Dynamic ID fetching for CI/CD environment",
+              "const baseUrl = pm.collectionVariables.get('BASE_API_URL');",
+              "const token = pm.collectionVariables.get('TOKEN');",
+              "",
+              "// Only fetch if not already cached in this run",
+              "if (!pm.collectionVariables.get('CACHED_PRODUCT_ID')) {",
+              "  console.log('Fetching dynamic IDs for CI/CD...');",
+              "  ",
+              "  // Fetch products synchronously",
+              "  const productReq = {",
+              "    url: baseUrl + '/products',",
+              "    method: 'GET',",
+              "    header: { 'Authorization': 'Bearer ' + token }",
+              "  };",
+              "  ",
+              "  pm.sendRequest(productReq, (err, res) => {",
+              "    if (!err && res.json()) {",
+              "      const products = res.json().data || res.json();",
+              "      if (products && products.length > 0) {",
+              "        pm.collectionVariables.set('CACHED_PRODUCT_ID', products[0].id);",
+              "        console.log('Cached product ID:', products[0].id);",
+              "      }",
+              "    }",
+              "  });",
+              "  ",
+              "  // Fetch categories",
+              "  const categoryReq = {",
+              "    url: baseUrl + '/categories',",
+              "    method: 'GET',",
+              "    header: { 'Authorization': 'Bearer ' + token }",
+              "  };",
+              "  ",
+              "  pm.sendRequest(categoryReq, (err, res) => {",
+              "    if (!err && res.json()) {",
+              "      const categories = res.json().data || res.json();",
+              "      if (categories && categories.length > 0) {",
+              "        pm.collectionVariables.set('CACHED_CATEGORY_ID', categories[0].id);",
+              "      }",
+              "    }",
+              "  });",
+              "  ",
+              "  // Fetch brands",
+              "  const brandReq = {",
+              "    url: baseUrl + '/brands',",
+              "    method: 'GET',",
+              "    header: { 'Authorization': 'Bearer ' + token }",
+              "  };",
+              "  ",
+              "  pm.sendRequest(brandReq, (err, res) => {",
+              "    if (!err && res.json()) {",
+              "      const brands = res.json().data || res.json();",
+              "      if (brands && brands.length > 0) {",
+              "        pm.collectionVariables.set('CACHED_BRAND_ID', brands[0].id);",
+              "      }",
+              "    }",
+              "  });",
+              "  ",
+              "  pm.collectionVariables.set('CACHED_PRODUCT_IMAGE_ID', '1');",
+              "}",
+              "",
+              "// Replace DYNAMIC values from CSV",
+              "const csvProductId = pm.iterationData.get('productId');",
+              "if (csvProductId === 'DYNAMIC') {",
+              "  pm.collectionVariables.set('productId', pm.collectionVariables.get('CACHED_PRODUCT_ID') || '1');",
+              "} else {",
+              "  pm.collectionVariables.set('productId', csvProductId);",
+              "}",
+              "",
+              "const csvCategoryId = pm.iterationData.get('category_id');",
+              "if (csvCategoryId === 'DYNAMIC') {",
+              "  pm.collectionVariables.set('category_id', pm.collectionVariables.get('CACHED_CATEGORY_ID') || '1');",
+              "} else {",
+              "  pm.collectionVariables.set('category_id', csvCategoryId);",
+              "}",
+              "",
+              "const csvBrandId = pm.iterationData.get('brand_id');",
+              "if (csvBrandId === 'DYNAMIC') {",
+              "  pm.collectionVariables.set('brand_id', pm.collectionVariables.get('CACHED_BRAND_ID') || '1');",
+              "} else {",
+              "  pm.collectionVariables.set('brand_id', csvBrandId);",
+              "}",
+              "",
+              "const csvImageId = pm.iterationData.get('product_image_id');",
+              "if (csvImageId === 'DYNAMIC') {",
+              "  pm.collectionVariables.set('product_image_id', pm.collectionVariables.get('CACHED_PRODUCT_IMAGE_ID') || '1');",
+              "} else {",
+              "  pm.collectionVariables.set('product_image_id', csvImageId);",
+              "}",
+              "",
+              "// Handle auth modes",
+              "const authMode = pm.iterationData.get('auth_mode');",
+              "if (authMode) {",
+              "  if (authMode === 'none') { ",
+              "    pm.request.removeHeader('Authorization'); ",
+              "  } else if (authMode === 'invalid') { ",
+              "    pm.request.upsertHeader({key:'Authorization', value:'Bearer INVALID'}); ",
+              "  }",
+              "}",
+              "",
+              "// Handle Raw_Body override",
+              "const override = pm.iterationData.get('Raw_Body');",
+              "if (override === 'EMPTY') { ",
+              "  pm.request.body.update(''); ",
+              "} else if (override === 'MALFORMED_OPEN') { ",
+              "  pm.request.body.update('{\"name\": \"Product\"'); ",
+              "} else if (override && override !== '') { ",
+              "  pm.request.body.update(String(override)); ",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.iterationData.get('TestCaseID') || '';",
+              "const title = pm.iterationData.get('Title') || '';",
+              "const expectedStatus = pm.iterationData.get('Expected_Status');",
+              "const expectedMessage = pm.iterationData.get('Expected_Message');",
+              "",
+              "let text = pm.response.text(); ",
+              "let json = null; ",
+              "try { json = pm.response.json(); } catch(e) {}",
+              "",
+              "pm.test(`[${id}] ${title} - HTTP status`, function() {",
+              "  pm.response.to.have.status(Number(expectedStatus));",
+              "});",
+              "",
+              "if(expectedMessage){ ",
+              "  pm.test(`[${id}] ${title} - message contains`, function() { ",
+              "    const found = text.includes(expectedMessage) || ",
+              "                  (json && json.message && json.message.includes(expectedMessage)) || ",
+              "                  (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage)); ",
+              "    pm.expect(found, 'Expected message not found').to.be.true; ",
+              "  }); ",
+              "}",
+              "",
+              "// Debug info for failed status tests",
+              "if (pm.response.code !== Number(expectedStatus)) {",
+              "  console.log(`DEBUG: Expected ${expectedStatus}, got ${pm.response.code}`);",
+              "  console.log('DEBUG_BODY:', text);",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "BASE_API_URL", "value": "http://localhost:8091" },
+    { "key": "LOGIN_EMAIL", "value": "admin@practicesoftwaretesting.com" },
+    { "key": "LOGIN_PASSWORD", "value": "welcome01" },
+    { "key": "TOKEN", "value": "" },
+    { "key": "CACHED_PRODUCT_ID", "value": "" },
+    { "key": "CACHED_CATEGORY_ID", "value": "" },
+    { "key": "CACHED_BRAND_ID", "value": "" },
+    { "key": "CACHED_PRODUCT_IMAGE_ID", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "brand_id", "value": "" },
+    { "key": "product_image_id", "value": "" }
+  ]
+}

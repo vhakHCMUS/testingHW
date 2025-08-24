@@ -448,7 +448,7 @@
   ],
   "variable": [
     { "key": "BASE_API_URL", "value": "http://localhost:8091" },
-    { "key": "LOGIN_EMAIL", "value": "admin@practicesoftwaretesting.com" },
+    { "key": "LOGIN_EMAIL", "value": "customer@practicesoftwaretesting.com" },
     { "key": "LOGIN_PASSWORD", "value": "welcome01" },
     { "key": "TOKEN", "value": "" },
     { "key": "ORIGINAL_PASSWORD", "value": "welcome01" },

@@ -1,0 +1,146 @@
+{
+  "info": {
+    "_postman_id": "update-user-collection",
+    "name": "Update User API Tests",
+    "description": "Dedicated collection for Update User API testing",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{LOGIN_EMAIL}}\",\n  \"password\": \"{{LOGIN_PASSWORD}}\"\n}"
+        },
+        "url": {
+          "raw": "{{BASE_API_URL}}/users/login",
+          "host": ["{{BASE_API_URL}}"],
+          "path": ["users", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login status 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try { json = pm.response.json(); } catch(e) { json = {}; }",
+              "",
+              "if(json.access_token){ ",
+              "  pm.collectionVariables.set('TOKEN', json.access_token); ",
+              "  pm.test('Token acquired', function() { pm.expect(true).to.be.true; });",
+              "  console.log('Token acquired for Update User tests');",
+              "} else { ",
+              "  pm.test('Token acquired', function() { pm.expect(false).to.be.true; });",
+              "  console.error('Failed to acquire token:', pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"first_name\": \"{{first_name}}\",\n  \"last_name\": \"{{last_name}}\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"{{phone}}\",\n  \"dob\": \"{{dob}}\",\n  \"address\": {\n    \"street\": \"{{street}}\",\n    \"city\": \"{{city}}\",\n    \"state\": \"{{state}}\",\n    \"country\": \"{{country}}\",\n    \"postal_code\": \"{{postal_code}}\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{BASE_API_URL}}/users/{{user_id}}",
+          "host": ["{{BASE_API_URL}}"],
+          "path": ["users", "{{user_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Handle body override and auth modes",
+              "const override = pm.iterationData.get('Raw_Body');",
+              "const authMode = pm.iterationData.get('auth_mode');",
+              "",
+              "if (override === 'EMPTY') { ",
+              "  pm.request.body.update(''); ",
+              "} else if (override === 'MALFORMED_OPEN') { ",
+              "  pm.request.body.update('{\"first_name\": \"John\"'); ",
+              "} else if (override) { ",
+              "  pm.request.body.update(String(override)); ",
+              "}",
+              "",
+              "if (authMode) {",
+              "  if (authMode === 'none' || authMode === 'missing') { ",
+              "    pm.request.removeHeader('Authorization'); ",
+              "  } else if (authMode === 'invalid') { ",
+              "    pm.request.upsertHeader({key:'Authorization', value:'Bearer INVALIDTOKEN123'}); ",
+              "  } else if (authMode === 'malformed') { ",
+              "    pm.request.upsertHeader({key:'Authorization', value:'Bearer@@broken'}); ",
+              "  } else if (authMode === 'expired') { ",
+              "    pm.request.upsertHeader({key:'Authorization', value:'Bearer EXPIREDTOKEN'}); ",
+              "  }",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.iterationData.get('TestCaseID') || '';",
+              "const title = pm.iterationData.get('Title') || '';",
+              "const expectedStatus = pm.iterationData.get('Expected_Status');",
+              "const expectedMessage = pm.iterationData.get('Expected_Message');",
+              "",
+              "let text = pm.response.text(); ",
+              "let json = null; ",
+              "try { json = pm.response.json(); } catch(e) {}",
+              "",
+              "pm.test(`[${id}] ${title} - HTTP status`, function() {",
+              "  pm.response.to.have.status(Number(expectedStatus));",
+              "});",
+              "",
+              "if(expectedMessage){ ",
+              "  pm.test(`[${id}] ${title} - message contains`, function() { ",
+              "    const found = text.includes(expectedMessage) || ",
+              "                  (json && json.message && json.message.includes(expectedMessage)) || ",
+              "                  (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage)); ",
+              "    pm.expect(found, 'Expected message not found').to.be.true; ",
+              "  }); ",
+              "}",
+              "",
+              "// Debug info for failed status tests",
+              "if (pm.response.code !== Number(expectedStatus)) {",
+              "  console.log(`DEBUG: Expected ${expectedStatus}, got ${pm.response.code}`);",
+              "  console.log('DEBUG_BODY:', text);",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "BASE_API_URL", "value": "http://localhost:8091" },
+    { "key": "LOGIN_EMAIL", "value": "admin@practicesoftwaretesting.com" },
+    { "key": "LOGIN_PASSWORD", "value": "welcome01" },
+    { "key": "TOKEN", "value": "" }
+  ]
+}
