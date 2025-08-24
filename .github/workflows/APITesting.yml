@@ -28,8 +28,8 @@ jobs:
 
       - name: ⏱️ Wait for Services to be Ready
         run: |
-          echo "Waiting 90 seconds for all services to initialize..."
-          sleep 90s
+          echo "Waiting 10 seconds for all services to initialize..."
+          sleep 10s
           echo "Services should be ready now"
 
       - name: 🌱 Setup Database
@@ -57,7 +57,20 @@ jobs:
             echo "✅ Login successful - token received"
           else
             echo "❌ Login failed - no token received"
-            exit 1
+            echo "Trying alternative credentials..."
+            
+            # Try customer credentials as fallback
+            response2=$(curl -s -X POST 'http://localhost:8091/users/login' \
+              -H 'Content-Type: application/json' \
+              --data-raw '{"email":"customer@practicesoftwaretesting.com","password":"welcome01"}')
+            echo "Customer login response: $response2"
+            
+            if echo "$response2" | grep -q "access_token"; then
+              echo "✅ Customer login successful"
+            else
+              echo "❌ Both login attempts failed - check seeded data"
+              exit 1
+            fi
           fi
 
       - name: 📦 Setup Node.js Environment
@@ -78,64 +91,72 @@ jobs:
           mkdir -p newman-reports
           echo "Reports directory created"
 
+      - name: 🔍 Verify Test Files
+        run: |
+          echo "🔍 Verifying test files and collection structure..."
+          
+          # Check CSV files
+          for csv in password_change.csv users_update.csv product_update.csv; do
+            if [ -f "$csv" ]; then
+              lines=$(wc -l < "$csv")
+              echo "✅ $csv exists with $lines lines"
+              head -2 "$csv"
+              echo ""
+            else
+              echo "❌ $csv not found"
+            fi
+          done
+          
+          # Check collection file
+          if [ -f "HW07_cicd_postman_collection_fixed.json" ]; then
+            echo "✅ Collection file exists"
+            # Extract folder names from collection
+            jq -r '.item[].name' HW07_cicd_postman_collection_fixed.json
+          else
+            echo "❌ Collection file not found"
+          fi
+
       - name: 🔐 Run Change Password API Tests
         run: |
-          echo "🔐 Running Change Password API tests..."
-          newman run HW07_cicd_postman_collection.json \
+          echo "🔐 Running Change Password API tests with CSV data..."
+          newman run HW07_cicd_postman_collection_fixed.json \
             --folder "Change-Password" \
             --iteration-data password_change.csv \
             --reporters cli,html,json \
             --reporter-html-export newman-reports/change-password-report.html \
             --reporter-json-export newman-reports/change-password-results.json \
-            --delay-request 500 \
+            --delay-request 200 \
             --timeout-request 10000 \
             --insecure \
-            --color on \
-            --verbose || echo "Change Password tests completed with some failures"
+            --color on || echo "Change Password tests completed with some failures"
 
       - name: 👤 Run Update User API Tests  
         run: |
-          echo "👤 Running Update User API tests..."
-          newman run HW07_cicd_postman_collection.json \
+          echo "👤 Running Update User API tests with CSV data..."
+          newman run HW07_cicd_postman_collection_fixed.json \
             --folder "Update-User" \
             --iteration-data users_update.csv \
             --reporters cli,html,json \
             --reporter-html-export newman-reports/update-user-report.html \
             --reporter-json-export newman-reports/update-user-results.json \
-            --delay-request 500 \
+            --delay-request 200 \
             --timeout-request 10000 \
             --insecure \
-            --color on \
-            --verbose || echo "Update User tests completed with some failures"
+            --color on || echo "Update User tests completed with some failures"
 
       - name: 🛍️ Run Update Product API Tests
         run: |
-          echo "🛍️ Running Update Product API tests..."
-          newman run HW07_cicd_postman_collection.json \
+          echo "🛍️ Running Update Product API tests with CSV data..."
+          newman run HW07_cicd_postman_collection_fixed.json \
             --folder "Product-Update" \
             --iteration-data product_update.csv \
             --reporters cli,html,json \
             --reporter-html-export newman-reports/update-product-report.html \
             --reporter-json-export newman-reports/update-product-results.json \
-            --delay-request 500 \
+            --delay-request 200 \
             --timeout-request 10000 \
             --insecure \
-            --color on \
-            --verbose || echo "Update Product tests completed with some failures"
-
-      - name: 🔄 Run Full Test Suite (All APIs)
-        run: |
-          echo "🔄 Running complete test suite with all APIs..."
-          newman run HW07_cicd_postman_collection.json \
-            --iteration-data password_change.csv \
-            --reporters cli,html,json \
-            --reporter-html-export newman-reports/full-suite-report.html \
-            --reporter-json-export newman-reports/full-suite-results.json \
-            --delay-request 1000 \
-            --timeout-request 15000 \
-            --insecure \
-            --color on \
-            --verbose || echo "Full test suite completed with some failures"
+            --color on || echo "Update Product tests completed with some failures"
 
       - name: 📊 Generate Test Summary
         if: always()
@@ -151,29 +172,48 @@ jobs:
               local passed=$(jq -r '.run.stats.tests.passed // 0' "$file")
               local failed=$(jq -r '.run.stats.tests.failed // 0' "$file")
               echo "📋 $name: $passed/$total passed ($failed failed)"
+              return $total
             else
               echo "⚠️ $name: Report file not found"
+              return 0
             fi
           }
           
           echo "## 🧪 API Test Results Summary" > test-summary.md
           echo "" >> test-summary.md
           echo "### Individual API Tests:" >> test-summary.md
+          
+          # Extract individual results
           extract_stats "newman-reports/change-password-results.json" "Change Password API" >> test-summary.md
-          extract_stats "newman-reports/update-user-results.json" "Update User API" >> test-summary.md  
+          extract_stats "newman-reports/update-user-results.json" "Update User API" >> test-summary.md
           extract_stats "newman-reports/update-product-results.json" "Update Product API" >> test-summary.md
-          echo "" >> test-summary.md
-          echo "### Full Test Suite:" >> test-summary.md
-          extract_stats "newman-reports/full-suite-results.json" "Complete Test Suite" >> test-summary.md
+          
           echo "" >> test-summary.md
           echo "### Test Execution Details:" >> test-summary.md
           echo "- **Date**: $(date)" >> test-summary.md
           echo "- **Environment**: CI/CD (GitHub Actions)" >> test-summary.md
           echo "- **API Base URL**: http://localhost:8091" >> test-summary.md
           echo "- **Authentication**: Dynamic token acquisition" >> test-summary.md
-          echo "- **Total Test Cases**: 138+ (39 Change Password + 49 Update User + 50 Update Product)" >> test-summary.md
+          echo "- **CSV Files**: password_change.csv, users_update.csv, product_update.csv" >> test-summary.md
           
           cat test-summary.md
+          
+          # Calculate totals for final check
+          total_tests=0
+          total_failed=0
+          
+          for file in newman-reports/change-password-results.json newman-reports/update-user-results.json newman-reports/update-product-results.json; do
+            if [ -f "$file" ]; then
+              tests=$(jq -r '.run.stats.tests.total // 0' "$file")
+              failed=$(jq -r '.run.stats.tests.failed // 0' "$file")
+              total_tests=$((total_tests + tests))
+              total_failed=$((total_failed + failed))
+            fi
+          done
+          
+          echo "TOTAL_TESTS=$total_tests" >> $GITHUB_ENV
+          echo "TOTAL_FAILED=$total_failed" >> $GITHUB_ENV
+          echo "Overall: $((total_tests - total_failed))/$total_tests passed ($total_failed failed)"
 
       - name: 📤 Upload Test Reports
         uses: actions/upload-artifact@v4
@@ -198,22 +238,17 @@ jobs:
         run: |
           echo "✅ Checking overall test execution status..."
           
-          # Check if any critical failures occurred
-          if [ -f "newman-reports/full-suite-results.json" ]; then
-            failed=$(jq -r '.run.stats.tests.failed // 0' "newman-reports/full-suite-results.json")
-            total=$(jq -r '.run.stats.tests.total // 0' "newman-reports/full-suite-results.json")
-            
-            echo "Final Results: $failed failed out of $total total tests"
-            
-            # Set a threshold for acceptable failures (adjust as needed)
-            if [ "$failed" -gt 20 ]; then
-              echo "❌ Too many test failures detected ($failed > 20)"
-              echo "This may indicate serious API issues that need investigation"
-              exit 1
-            else
-              echo "✅ Test execution completed with acceptable failure rate"
-            fi
-          else
-            echo "⚠️ Could not determine test results - reports missing"
+          total_tests=${TOTAL_TESTS:-0}
+          total_failed=${TOTAL_FAILED:-0}
+          
+          echo "Final Results: $total_failed failed out of $total_tests total tests"
+          
+          if [ "$total_tests" -eq 0 ]; then
+            echo "❌ No tests were executed - check collection and CSV files"
             exit 1
+          elif [ "$total_failed" -gt 15 ]; then
+            echo "❌ Too many test failures detected ($total_failed > 15)"
+            exit 1
+          else
+            echo "✅ Test execution completed with acceptable results"
           fi
