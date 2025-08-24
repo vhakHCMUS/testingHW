@@ -1,50 +1,50 @@
-TestCaseID,Title,first_name,last_name,email,phone,dob,street,city,state,country,postal_code,Expected_Status,Expected_Message
-TC001,Complete user profile update,John,Doe,john.doe@example.com,+84901234567,1985-06-15,123 Main St,Ho Chi Minh City,HCMC,Vietnam,70000,200,success
-TC002,Minimum valid data update,Jane,Smith,jane.smith@test.com,,1990-01-01,Test Street,Test City,,Test Country,,200,success
-TC003,Update with Vietnamese characters,Nguyễn,Văn Minh,nguyen.minh@gmail.com,,1988-12-25,123 Đường Lê Lợi,Thành phố Hồ Chí Minh,HCMC,Vietnam,,200,success
-TC004,Update single field (first_name only),Updated,Smith,original@test.com,,1990-01-01,Original St,Original City,,Original Country,,200,success
-TC005,Update single field (email only),Jane,Smith,updated.email@example.com,,1990-01-01,Original St,Original City,,Original Country,,200,success
-TC006,Update address only,Jane,Smith,original@test.com,,,New Street,New City,New State,New Country,12345,200,success
-TC007,Update phone number only,Jane,Smith,original@test.com,+84909876543,1990-01-01,Original St,Original City,,Original Country,,200,success
-TC008,Maximum field lengths (boundary test),ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678901234,ABCDEFGHIJKLMNOPQRST,max.length@example.com,12345678901234567890123456,1975-01-01,Street name that is exactly 70 characters long for boundary testing 12,City name that is maximum 40 characters,State name that is maximum 40 characters,Country name that is maximum 40 characte,1234567890,200,success
-TC009,Empty first_name,,Doe,test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name field is required
-TC010,Empty last_name,John,,test2@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The last name field is required
-TC011,Empty email,John,Doe,,,1990-01-01,Test St,Test City,,Test Country,,422,The email field is required
-TC012,Invalid email format,John,Doe,invalid-email-format,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address
-TC013,First name too long,ThisFirstNameIsTooLongAndExceedsThe40CharacterLimit,Doe,long.name@test.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name may not be greater than 40 characters
-TC014,Last name too long,John,ThisLastNameIsTooLongAndExceedsThe20CharacterLimit,long.lastname@test.com,,1990-01-01,Test St,Test City,,Test Country,,422,The last name may not be greater than 20 characters
-TC015,Email too long,John,Doe,this.email.address.is.way.too.long.and.exceeds.the.256.character.limit.for.email.addresses.in.the.system.which.should.cause.a.validation.error.when.submitted.to.the.api.endpoint.because.it.violates.the.maximum.length.constraint@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The email may not be greater than 256 characters
-TC016,Phone too long,John,Doe,phone.test@example.com,1234567890123456789012345,1990-01-01,Test St,Test City,,Test Country,,422,The phone may not be greater than 24 characters
-TC017,Street too long,John,Doe,street.test@example.com,,1990-01-01,This street name is way too long and exceeds the 70 character limit set by the API validation rules,Test City,,Test Country,,422,The address.street may not be greater than 70 characters
-TC018,City too long,John,Doe,city.test@example.com,,1990-01-01,Test St,This city name is too long and exceeds the 40 character limit for validation,Test State,Test Country,,422,The address.city may not be greater than 40 characters
-TC019,State too long,John,Doe,state.test@example.com,,1990-01-01,Test St,Test City,This state name is too long and exceeds the 40 character limit,Test Country,,422,The address.state may not be greater than 40 characters
-TC020,Country too long,John,Doe,country.test@example.com,,1990-01-01,Test St,Test City,Test State,This country name is too long and exceeds the 40 character limit set by validation,,422,The address.country may not be greater than 40 characters
-TC021,Postal code too long,John,Doe,postal.test@example.com,,1990-01-01,Test St,Test City,Test State,Test Country,12345678901,422,The address.postal code may not be greater than 10 characters
-TC022,User under 18 years old,Minor,User,minor@test.com,,2010-01-01,Test St,Test City,,Test Country,,422,Customer must be 18 years old
-TC023,Invalid date format,John,Doe,date.test@example.com,,invalid-date,Test St,Test City,,Test Country,,422,The dob does not match the format Y-m-d
-TC024,Missing required address street,John,Doe,address.test@example.com,,1990-01-01,,Test City,,Test Country,,422,The address.street field is required
-TC025,Missing required address city,John,Doe,address2.test@example.com,,1990-01-01,Test St,,,Test Country,,422,The address.city field is required
-TC026,Missing required address country,John,Doe,address3.test@example.com,,1990-01-01,Test St,Test City,Test State,,,422,The address.country field is required
-TC027,XSS attempt in first name,<script>alert('xss')</script>,Doe,xss.test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error
-TC028,SQL injection attempt,'; DROP TABLE users; --,Doe,sql.test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error
-TC029,Unicode characters,测试,用户,unicode@test.com,,1990-01-01,测试街道,测试城市,,测试国家,,200,success
-TC030,Future date of birth,John,Doe,future.test@example.com,,2030-01-01,Test St,Test City,,Test Country,,422,Customer must be 18 years old
-TC031,Invalid email format - missing @,John,Doe,invalid-email.com,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address
-TC032,Invalid email format - missing domain,John,Doe,user@,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address
-TC033,Invalid phone format - letters,John,Doe,john@example.com,abc123456,1990-01-01,Test St,Test City,,Test Country,,422,The phone format is invalid
-TC034,Phone too short,John,Doe,john@example.com,123,1990-01-01,Test St,Test City,,Test Country,,422,The phone may not be less than 8 characters
-TC035,Exceeding field length - first_name,ThisFirstNameExceedsTheMaximumAllowedCharacterLimitInTheSystemSoItShouldGenerateAValidationErrorWhenSubmittedToTheAPIEndpoint,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name may not be greater than 40 characters
-TC036,Exceeding field length - email,John,Doe,thisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpointthisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpoint@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The email may not be greater than 256 characters
-TC037,Invalid postal code format,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,invalid-postal,422,The postal code format is invalid
-TC038,SQL injection attempt in first_name,"'; DROP TABLE users; --",Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error
-TC039,XSS attempt in last_name,John,"<script>alert('xss')</script>",john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error
-TC040,No authentication token,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,unauthorized
-TC041,Invalid authentication token,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,token validation failed
-TC042,Expired authentication token,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,token expired
-TC043,Update another user's profile,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,403,forbidden
-TC044,Malformed Bearer token,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,malformed token
-TC045,Missing Authorization header,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,missing authentication
-TC046,Non-existent user ID,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,404,user not found
-TC047,Invalid user ID format,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,400,invalid user ID format
-TC029,Empty request body,,,,,,,,,,400,empty request body
-TC030,Malformed JSON,INVALID_JSON_TO_GENERATE_ERROR,,,,,,,,,400,JSON parsing error
+TestCaseID,Title,user_id,auth_mode,first_name,last_name,email,phone,dob,street,city,state,country,postal_code,Expected_Status,Expected_Message,Raw_Body
+TC001,Complete user profile update,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,john.doe@example.com,+84901234567,1985-06-15,123 Main St,Ho Chi Minh City,HCMC,Vietnam,70000,200,success,
+TC002,Minimum valid data update,01K3E8KTDZKV5MMHQXQ9GRXWJW,,Jane,Smith,jane.smith@test.com,,1990-01-01,Test Street,Test City,,Test Country,,200,success,
+TC003,Update with Vietnamese characters,01K3E8KTDZKV5MMHQXQ9GRXWJW,,Nguyễn,Văn Minh,nguyen.minh@gmail.com,,1988-12-25,"123 Đường Lê Lợi","Thành phố Hồ Chí Minh",HCMC,Vietnam,,200,success,
+TC004,Update single field (first_name only),01K3E8KTDZKV5MMHQXQ9GRXWJW,,Updated,Smith,original@test.com,,1990-01-01,Original St,Original City,,Original Country,,200,success,
+TC005,Update single field (email only),01K3E8KTDZKV5MMHQXQ9GRXWJW,,Jane,Smith,updated.email@example.com,,1990-01-01,Original St,Original City,,Original Country,,200,success,
+TC006,Update address only,01K3E8KTDZKV5MMHQXQ9GRXWJW,,Jane,Smith,original@test.com,,1990-01-01,New Street,New City,New State,New Country,12345,200,success,
+TC007,Update phone number only,01K3E8KTDZKV5MMHQXQ9GRXWJW,,Jane,Smith,original@test.com,+84909876543,1990-01-01,Original St,Original City,,Original Country,,200,success,
+TC008,Maximum field lengths (boundary test),01K3E8KTDZKV5MMHQXQ9GRXWJW,,"ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678901234",ABCDEFGHIJKLMNOPQRST,max.length@example.com,12345678901234567890123456,1975-01-01,"Street name that is exactly 70 characters long for boundary testing 12","City name that is maximum 40 characters","State name that is maximum 40 characters","Country name that is maximum 40 characte",1234567890,200,success,
+TC009,Empty first_name,01K3E8KTDZKV5MMHQXQ9GRXWJW,, ,Doe,test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name field is required,
+TC010,Empty last_name,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John, ,test2@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The last name field is required,
+TC011,Empty email,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,,,1990-01-01,Test St,Test City,,Test Country,,422,The email field is required,
+TC012,Invalid email format,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,invalid-email-format,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address,
+TC013,First name too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,ThisFirstNameIsTooLongAndExceedsThe40CharacterLimit,Doe,long.name@test.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name may not be greater than 40 characters,
+TC014,Last name too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,ThisLastNameIsTooLongAndExceedsThe20CharacterLimit,long.lastname@test.com,,1990-01-01,Test St,Test City,,Test Country,,422,The last name may not be greater than 20 characters,
+TC015,Email too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,"this.email.address.is.way.too.long.and.exceeds.the.256.character.limit.for.email.addresses.in.the.system.which.should.cause.a.validation.error.when.submitted.to.the.api.endpoint.because.it.violates.the.maximum.length.constraint@example.com",,1990-01-01,Test St,Test City,,Test Country,,422,The email may not be greater than 256 characters,
+TC016,Phone too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,phone.test@example.com,1234567890123456789012345,1990-01-01,Test St,Test City,,Test Country,,422,The phone may not be greater than 24 characters,
+TC017,Street too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,street.test@example.com,,1990-01-01,"This street name is way too long and exceeds the 70 character limit set by the API validation rules",Test City,,Test Country,,422,The address.street may not be greater than 70 characters,
+TC018,City too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,city.test@example.com,,1990-01-01,Test St,"This city name is too long and exceeds the 40 character limit for validation",Test State,Test Country,,422,The address.city may not be greater than 40 characters,
+TC019,State too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,state.test@example.com,,1990-01-01,Test St,Test City,"This state name is too long and exceeds the 40 character limit",Test Country,,422,The address.state may not be greater than 40 characters,
+TC020,Country too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,country.test@example.com,,1990-01-01,Test St,Test City,Test State,"This country name is too long and exceeds the 40 character limit set by validation",,422,The address.country may not be greater than 40 characters,
+TC021,Postal code too long,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,postal.test@example.com,,1990-01-01,Test St,Test City,Test State,Test Country,12345678901,422,The address.postal code may not be greater than 10 characters,
+TC022,User under 18 years old,01K3E8KTDZKV5MMHQXQ9GRXWJW,,Minor,User,minor@test.com,,2010-01-01,Test St,Test City,,Test Country,,422,Customer must be 18 years old,
+TC023,Invalid date format,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,date.test@example.com,,invalid-date,Test St,Test City,,Test Country,,422,The dob does not match the format Y-m-d,
+TC024,Missing required address street,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,address.test@example.com,,1990-01-01,,Test City,,Test Country,,422,The address.street field is required,
+TC025,Missing required address city,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,address2.test@example.com,,1990-01-01,Test St,,,Test Country,,422,The address.city field is required,
+TC026,Missing required address country,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,address3.test@example.com,,1990-01-01,Test St,Test City,Test State,,,422,The address.country field is required,
+TC027,XSS attempt in first name,01K3E8KTDZKV5MMHQXQ9GRXWJW,,"<script>alert('xss')</script>",Doe,xss.test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error,
+TC028,SQL injection attempt,01K3E8KTDZKV5MMHQXQ9GRXWJW,,"'; DROP TABLE users; --",Doe,sql.test@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error,
+TC029,Unicode characters,01K3E8KTDZKV5MMHQXQ9GRXWJW,,测试,用户,unicode@test.com,,1990-01-01,测试街道,测试城市,,测试国家,,200,success,
+TC030,Future date of birth,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,future.test@example.com,,2030-01-01,Test St,Test City,,Test Country,,422,Customer must be 18 years old,
+TC031,Invalid email format - missing @,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,invalid-email.com,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address,
+TC032,Invalid email format - missing domain,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,user@,,1990-01-01,Test St,Test City,,Test Country,,422,The email must be a valid email address,
+TC33,Invalid phone format - letters,01K3E8KTDZKV5MMHQXQ9GRXWJW,,John,Doe,john@example.com,abc123456,1990-01-01,Test St,Test City,,Test Country,,422,The phone format is invalid,
+TC034,Phone too short,01K3DGBQD8X550MY2S8REJ2FZM,,John,Doe,john@example.com,123,1990-01-01,Test St,Test City,,Test Country,,422,The phone may not be less than 8 characters,
+TC035,Exceeding field length - first_name,01K3DGBQD8X550MY2S8REJ2FZM,,ThisFirstNameExceedsTheMaximumAllowedCharacterLimitInTheSystemSoItShouldGenerateAValidationErrorWhenSubmittedToTheAPIEndpoint,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,The first name may not be greater than 40 characters,
+TC036,Exceeding field length - email,01K3DGBQD8X550MY2S8REJ2FZM,,John,Doe,"thisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpointthisemailaddressexceedsthemaximumallowedcharacterlimitinthesystemsoitshouldgenerateavalidationerrorwhensubmittedtotheapiendpoint@example.com",,1990-01-01,Test St,Test City,,Test Country,,422,The email may not be greater than 256 characters,
+TC037,Invalid postal code format,01K3DGBQD8X550MY2S8REJ2FZM,,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,invalid-postal,422,The postal code format is invalid,
+TC038,SQL injection attempt in first_name,01K3DGBQD8X550MY2S8REJ2FZM,,"'; DROP TABLE users; --",Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error,
+TC039,XSS attempt in last_name,01K3DGBQD8X550MY2S8REJ2FZM,,John,"<script>alert('xss')</script>",john@example.com,,1990-01-01,Test St,Test City,,Test Country,,422,validation error,
+TC040,No authentication token,01K3DGBQD8X550MY2S8REJ2FZM,none,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,unauthorized,
+TC041,Invalid authentication token,01K3DGBQD8X550MY2S8REJ2FZM,invalid,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,token validation failed,
+TC042,Expired authentication token,01K3DGBQD8X550MY2S8REJ2FZM,expired,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,token expired,
+TC043,Update another user's profile,2,,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,403,forbidden,
+TC044,Malformed Bearer token,01K3DGBQD8X550MY2S8REJ2FZM,malformed,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,malformed token,
+TC045,Missing Authorization header,01K3DGBQD8X550MY2S8REJ2FZM,missing,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,401,missing authentication,
+TC046,Non-existent user ID,999999,,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,404,user not found,
+TC047,Invalid user ID format,abc,,John,Doe,john@example.com,,1990-01-01,Test St,Test City,,Test Country,,400,invalid user ID format,
+TC048,Empty request body,01K3DGBQD8X550MY2S8REJ2FZM,,John,Doe,john@example.com,+84901234567,1985-06-15,123 Main St,Ho Chi Minh City,HCMC,Vietnam,70000,400,empty request body,EMPTY
+TC049,Malformed JSON,01K3DGBQD8X550MY2S8REJ2FZM,,John,Doe,john@example.com,+84901234567,1985-06-15,123 Main St,Ho Chi Minh City,HCMC,Vietnam,70000,400,JSON parsing error,MALFORMED_OPEN

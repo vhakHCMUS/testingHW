@@ -1,0 +1,336 @@
+{
+  "info": {
+    "_postman_id": "c5ef1cbe-5b02-4d8d-9f4a-LOCALTEST001",
+    "name": "HW07 Local Test Collection",
+    "description": "Local testing collection with Login, Product Update, Update User, and Change Password requests using CSV iteration data.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{LOGIN_EMAIL}}\",\n  \"password\": \"{{LOGIN_PASSWORD}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_API_URL}}/users/login",
+              "host": ["{{BASE_API_URL}}"],
+              "path": ["users", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login status 200', () => pm.response.to.have.status(200));",
+                  "let json = {}; try { json = pm.response.json(); } catch(e) { json = {}; }",
+                  "if(json.access_token){ pm.collectionVariables.set('TOKEN', json.access_token); pm.test('Token present', () => true); } else { pm.test('Token present', () => false); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Update-User",
+      "item": [
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"{{first_name}}\",\n  \"last_name\": \"{{last_name}}\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"{{phone}}\",\n  \"dob\": \"{{dob}}\",\n  \"address\": {\n    \"street\": \"{{street}}\",\n    \"city\": \"{{city}}\",\n    \"state\": \"{{state}}\",\n    \"country\": \"{{country}}\",\n    \"postal_code\": \"{{postal_code}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_API_URL}}/users/{{user_id}}",
+              "host": ["{{BASE_API_URL}}"],
+              "path": ["users", "{{user_id}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Handle auth_mode variations and optional body override",
+                  "const override = pm.iterationData.get('Raw_Body');",
+                  "const authMode = pm.iterationData.get('auth_mode');",
+                  "// Body override: 'EMPTY' sentinel means truly empty body",
+                  "if (override === 'EMPTY') { pm.request.body.update(''); } else if (override === 'MALFORMED_OPEN') { pm.request.body.update('{\"first_name\": \"John\"'); } else if (override) { pm.request.body.update(String(override)); }",
+                  "// Auth handling",
+                  "if (authMode) {",
+                  "  if (authMode === 'none' || authMode === 'missing') { pm.request.removeHeader('Authorization'); }",
+                  "  else if (authMode === 'invalid') { pm.request.upsertHeader({key:'Authorization', value:'Bearer INVALIDTOKEN123'}); }",
+                  "  else if (authMode === 'malformed') { pm.request.upsertHeader({key:'Authorization', value:'Bearer@@broken'}); }",
+                  "  else if (authMode === 'expired') { pm.request.upsertHeader({key:'Authorization', value:'Bearer EXPIREDTOKEN'}); }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get('TestCaseID') || pm.iterationData.get('TestCaseId') || '';",
+                  "const title = pm.iterationData.get('Title') || pm.iterationData.get('Description') || '';",
+                  "const expectedStatus = pm.iterationData.get('Expected_Status');",
+                  "const expectedMessage = pm.iterationData.get('Expected_Message');",
+                  "let text = pm.response.text(); let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "pm.test(`[${id}] ${title} - HTTP status`, () => pm.response.to.have.status(Number(expectedStatus)));",
+                  "if(expectedMessage){ pm.test(`[${id}] ${title} - message contains`, () => { const found = text.includes(expectedMessage) || (json && json.message && json.message.includes(expectedMessage)) || (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage)); pm.expect(found, 'Expected message not found').to.be.true; }); }",
+                  "// Attach debug info when failure occurs",
+                  "if (pm.tests.get(`[${id}] ${title} - HTTP status`) === false) { console.log('DEBUG_BODY:', text); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Product-Update",
+      "item": [
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"description\": \"{{description}}\",\n  \"price\": {{price}},\n  \"category_id\": \"{{category_id}}\",\n  \"brand_id\": \"{{brand_id}}\",\n  \"product_image_id\": \"{{product_image_id}}\",\n  \"is_location_offer\": {{is_location_offer}},\n  \"is_rental\": {{is_rental}}\n}"
+            },
+            "url": {
+              "raw": "{{BASE_API_URL}}/products/{{productId}}",
+              "host": ["{{BASE_API_URL}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Simple: fetch IDs once, replace DYNAMIC values in CSV",
+                  "const baseUrl = pm.collectionVariables.get('BASE_API_URL');",
+                  "const token = pm.collectionVariables.get('TOKEN');",
+                  "",
+                  "// Only fetch if not already cached",
+                  "if (!pm.collectionVariables.get('CACHED_PRODUCT_ID')) {",
+                  "  console.log('Fetching dynamic IDs...');",
+                  "  ",
+                  "  pm.sendRequest({",
+                  "    url: baseUrl + '/products',",
+                  "    method: 'GET',",
+                  "    header: { 'Authorization': 'Bearer ' + token }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.json()) {",
+                  "      const products = res.json().data || res.json();",
+                  "      if (products && products.length > 0) {",
+                  "        const product = products[0]; // Just use first product",
+                  "        pm.collectionVariables.set('CACHED_PRODUCT_ID', product.id);",
+                  "        console.log('Cached product ID:', product.id);",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "  ",
+                  "  pm.sendRequest({",
+                  "    url: baseUrl + '/categories',",
+                  "    method: 'GET',",
+                  "    header: { 'Authorization': 'Bearer ' + token }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.json()) {",
+                  "      const categories = res.json().data || res.json();",
+                  "      if (categories && categories.length > 0) {",
+                  "        pm.collectionVariables.set('CACHED_CATEGORY_ID', categories[0].id);",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "  ",
+                  "  pm.sendRequest({",
+                  "    url: baseUrl + '/brands',",
+                  "    method: 'GET',",
+                  "    header: { 'Authorization': 'Bearer ' + token }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.json()) {",
+                  "      const brands = res.json().data || res.json();",
+                  "      if (brands && brands.length > 0) {",
+                  "        pm.collectionVariables.set('CACHED_BRAND_ID', brands[0].id);",
+                  "      }",
+                  "    }",
+                  "  });",
+                  "  ",
+                  "  pm.collectionVariables.set('CACHED_PRODUCT_IMAGE_ID', '1');",
+                  "}",
+                  "",
+                  "// Replace DYNAMIC values from CSV",
+                  "const csvProductId = pm.iterationData.get('productId');",
+                  "if (csvProductId === 'DYNAMIC') {",
+                  "  pm.collectionVariables.set('productId', pm.collectionVariables.get('CACHED_PRODUCT_ID') || '1');",
+                  "} else {",
+                  "  pm.collectionVariables.set('productId', csvProductId);",
+                  "}",
+                  "",
+                  "const csvCategoryId = pm.iterationData.get('category_id');",
+                  "if (csvCategoryId === 'DYNAMIC') {",
+                  "  pm.collectionVariables.set('category_id', pm.collectionVariables.get('CACHED_CATEGORY_ID') || '1');",
+                  "} else {",
+                  "  pm.collectionVariables.set('category_id', csvCategoryId);",
+                  "}",
+                  "",
+                  "const csvBrandId = pm.iterationData.get('brand_id');",
+                  "if (csvBrandId === 'DYNAMIC') {",
+                  "  pm.collectionVariables.set('brand_id', pm.collectionVariables.get('CACHED_BRAND_ID') || '1');",
+                  "} else {",
+                  "  pm.collectionVariables.set('brand_id', csvBrandId);",
+                  "}",
+                  "",
+                  "const csvImageId = pm.iterationData.get('product_image_id');",
+                  "if (csvImageId === 'DYNAMIC') {",
+                  "  pm.collectionVariables.set('product_image_id', pm.collectionVariables.get('CACHED_PRODUCT_IMAGE_ID') || '1');",
+                  "} else {",
+                  "  pm.collectionVariables.set('product_image_id', csvImageId);",
+                  "}",
+                  "",
+                  "// Handle auth modes",
+                  "const authMode = pm.iterationData.get('auth_mode');",
+                  "if (authMode) {",
+                  "  if (authMode === 'none') { pm.request.removeHeader('Authorization'); }",
+                  "  else if (authMode === 'invalid') { pm.request.upsertHeader({key:'Authorization', value:'Bearer INVALID'}); }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get('TestCaseID') || pm.iterationData.get('TestCaseId') || '';",
+                  "const title = pm.iterationData.get('Title') || pm.iterationData.get('Description') || '';",
+                  "const expectedStatus = pm.iterationData.get('Expected_Status');",
+                  "const expectedMessage = pm.iterationData.get('Expected_Message');",
+                  "let text = pm.response.text(); let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "pm.test(`[${id}] ${title} - HTTP status`, () => pm.response.to.have.status(Number(expectedStatus)));",
+                  "if(expectedMessage){ pm.test(`[${id}] ${title} - message contains`, () => { const found = text.includes(expectedMessage) || (json && json.message && json.message.includes(expectedMessage)) || (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage)); pm.expect(found, 'Expected message not found').to.be.true; }); }",
+                  "// Attach debug info when failure occurs",
+                  "if (pm.tests.get(`[${id}] ${title} - HTTP status`) === false) { console.log('DEBUG_BODY:', text); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Change-Password",
+      "item": [
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{TOKEN}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{current_password}}\",\n  \"new_password\": \"{{new_password}}\",\n  \"new_password_confirmation\": \"{{new_password_confirmation}}\"\n}"
+            },
+            "url": {
+              "raw": "{{BASE_API_URL}}/users/change-password",
+              "host": ["{{BASE_API_URL}}"],
+              "path": ["users", "change-password"]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const override = pm.iterationData.get('Raw_Body');",
+                  "const authMode = pm.iterationData.get('auth_mode');",
+                  "if (override === 'EMPTY') { pm.request.body.update(''); } else if (override) { pm.request.body.update(String(override)); }",
+                  "if (authMode) {",
+                  "  if (authMode === 'none' || authMode === 'missing') { pm.request.removeHeader('Authorization'); }",
+                  "  else if (authMode === 'invalid') { pm.request.upsertHeader({key:'Authorization', value:'Bearer INVALIDTOKEN123'}); }",
+                  "  else if (authMode === 'malformed') { pm.request.upsertHeader({key:'Authorization', value:'Bearer@@broken'}); }",
+                  "  else if (authMode === 'expired') { pm.request.upsertHeader({key:'Authorization', value:'Bearer EXPIREDTOKEN'}); }",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const id = pm.iterationData.get('TestCaseID') || pm.iterationData.get('TestCaseId') || '';",
+                  "const title = pm.iterationData.get('Title') || pm.iterationData.get('Description') || '';",
+                  "const expectedStatus = pm.iterationData.get('Expected_Status');",
+                  "const expectedMessage = pm.iterationData.get('Expected_Message');",
+                  "let text = pm.response.text(); let json = null; try { json = pm.response.json(); } catch(e) {}",
+                  "pm.test(`[${id}] ${title} - HTTP status`, () => pm.response.to.have.status(Number(expectedStatus)));",
+                  "if(expectedMessage){ pm.test(`[${id}] ${title} - message contains`, () => { const found = text.includes(expectedMessage) || (json && json.message && json.message.includes(expectedMessage)) || (json && json.errors && JSON.stringify(json.errors).includes(expectedMessage)); pm.expect(found, 'Expected message not found').to.be.true; }); }",
+                  "if (pm.tests.get(`[${id}] ${title} - HTTP status`) === false) { console.log('DEBUG_BODY:', text); }",
+                  "try { /* Auto-reset password to ORIGINAL_PASSWORD after a successful change */",
+                  "  const originalPassword = pm.collectionVariables.get('ORIGINAL_PASSWORD') || 'welcome01';",
+                  "  const newPwd = pm.iterationData.get('new_password');",
+                  "  if (pm.response.code === 200 && newPwd && newPwd !== originalPassword) {",
+                  "    pm.sendRequest({",
+                  "      url: pm.collectionVariables.get('BASE_API_URL') + '/users/change-password',",
+                  "      method: 'POST',",
+                  "      header: {",
+                  "        'Content-Type': 'application/json',",
+                  "        'Authorization': 'Bearer ' + pm.collectionVariables.get('TOKEN')",
+                  "      },",
+                  "      body: { mode: 'raw', raw: JSON.stringify({ current_password: newPwd, new_password: originalPassword, new_password_confirmation: originalPassword }) }",
+                  "    }, function(err, res){ if(err){ console.log('Password reset failed', err); } else { console.log('Password reset status', res.code); } });",
+                  "  }",
+                  "} catch(e) { console.log('Reset logic error', e); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "BASE_API_URL", "value": "http://localhost:8091" },
+    { "key": "LOGIN_EMAIL", "value": "admin@example.com" },
+    { "key": "LOGIN_PASSWORD", "value": "Password123!" },
+    { "key": "TOKEN", "value": "" },
+    { "key": "ORIGINAL_PASSWORD", "value": "welcome01" },
+    { "key": "CURRENT_PRODUCT_ID", "value": "" },
+    { "key": "FETCHED_PRODUCT_ID", "value": "" },
+    { "key": "FETCHED_CATEGORY_ID", "value": "" },
+    { "key": "FETCHED_BRAND_ID", "value": "" },
+    { "key": "FETCHED_PRODUCT_IMAGE_ID", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "brand_id", "value": "" },
+    { "key": "product_image_id", "value": "" }
+  ]
+}
