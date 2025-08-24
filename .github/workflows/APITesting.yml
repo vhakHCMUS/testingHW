@@ -3,73 +3,231 @@ name: Run Postman API Tests 📦
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-concurrency: production_environment
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   postman-tests: 
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    
     steps:
       - name: Checkout ⚙️
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
+      - name: Set up environment variables
         run: |
-          # Set SPRINT environment variable (use the sprint you're currently testing)
           echo "SPRINT=sprint5" >> $GITHUB_ENV
           echo "DISABLE_LOGGING=true" >> $GITHUB_ENV
+          echo "BASE_API_URL=http://localhost:8091" >> $GITHUB_ENV
 
-      - name: Start Docker services
+      - name: Start Docker services 🚀
         run: |
+          echo "🚀 Starting Docker services..."
           docker compose -f docker-compose.yml up -d --force-recreate
+          
+          echo "⏳ Waiting for services to be ready..."
+          sleep 45
 
-      - name: Wait for services to be ready
+      - name: Wait for services health check 🏥
         run: |
-          # Wait for the API service to be fully available
-          echo "Waiting for API service to be ready..."
-          timeout=120  # Maximum wait time in seconds
-          elapsed=0
-          while ! curl -s http://localhost:8091/api/status > /dev/null; do
-            if [ $elapsed -gt $timeout ]; then
-              echo "Timeout waiting for API service"
+          echo "🏥 Checking service health..."
+          
+          # Wait for MariaDB to be ready
+          echo "Waiting for MariaDB..."
+          timeout 60 bash -c 'until docker compose exec -T mariadb mysqladmin ping -h localhost --silent; do sleep 2; done'
+          
+          # Wait for Laravel API to be ready
+          echo "Waiting for Laravel API..."
+          timeout 120 bash -c 'until curl -f http://localhost:8091/health >/dev/null 2>&1 || curl -f http://localhost:8091 >/dev/null 2>&1; do echo "Waiting for API..."; sleep 5; done'
+          
+          echo "✅ All services are ready"
+
+      - name: Setup database 🗄️
+        run: |
+          echo "🗄️ Setting up database..."
+          
+          # Run migrations and seed data
+          docker compose exec -T laravel-api php artisan migrate:fresh --seed --force
+          
+          # Verify database setup
+          docker compose exec -T laravel-api php artisan tinker --execute="echo 'Users count: ' . App\\Models\\User::count();"
+          
+          echo "✅ Database initialized successfully"
+
+      - name: Install Newman (Postman CLI) 📦
+        run: |
+          echo "📦 Installing Newman..."
+          npm install -g newman
+          newman --version
+          echo "✅ Newman installed successfully"
+
+      - name: Get authentication token 🔑
+        run: |
+          echo "🔑 Getting authentication token..."
+          
+          # Try to get token from login endpoint
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:8091/users/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"admin@practicesoftwaretesting.com","password":"welcome01"}')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "Login response status: $HTTP_CODE"
+          echo "Response body: $RESPONSE_BODY"
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            # Try different possible token field names
+            TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"access_token":"[^"]*' | sed 's/"access_token":"//' || true)
+            if [ -z "$TOKEN" ]; then
+              TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"token":"[^"]*' | sed 's/"token":"//' || true)
+            fi
+            if [ -z "$TOKEN" ]; then
+              TOKEN=$(echo "$RESPONSE_BODY" | grep -o '"auth_token":"[^"]*' | sed 's/"auth_token":"//' || true)
+            fi
+          fi
+          
+          if [ -z "$TOKEN" ] || [ "$HTTP_CODE" != "200" ]; then
+            echo "⚠️ Failed to get authentication token from API. Using fallback method..."
+            
+            # Try to get token from database directly
+            TOKEN=$(docker compose exec -T laravel-api php artisan tinker --execute="
+              \$user = App\\Models\\User::where('email', 'admin@practicesoftwaretesting.com')->first();
+              if (\$user) {
+                \$token = \$user->createToken('api-test')->plainTextToken;
+                echo \$token;
+              } else {
+                echo 'NO_USER_FOUND';
+              }
+            " 2>/dev/null | tail -n1)
+            
+            if [ "$TOKEN" = "NO_USER_FOUND" ] || [ -z "$TOKEN" ]; then
+              echo "❌ Cannot obtain authentication token. Exiting..."
               exit 1
             fi
-            sleep 5
-            elapsed=$((elapsed + 5))
-            echo "Still waiting... ($elapsed seconds elapsed)"
-          done
-          echo "API service is ready!"
+          fi
+          
+          echo "✅ Successfully obtained authentication token"
+          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
 
-      - name: Install Newman (Postman CLI)
-        run: npm install -g newman
+      - name: Verify API access 🔍
+        run: |
+          echo "🔍 Verifying API access with token..."
+          
+          # Test API access with the token
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET http://localhost:8091/users/1 \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ API access verification failed (HTTP $HTTP_CODE)"
+            echo "Response: $(echo "$RESPONSE" | head -n -1)"
+            exit 1
+          fi
+          
+          echo "✅ API access verified successfully"
 
       - name: Run Update-User tests 👤
         run: |
+          echo "👤 Running Update-User tests..."
+          
           newman run HW07_postman_collection.json \
             --folder "Update-User" \
             --iteration-data users_update.csv \
-            --env-var BASE_API_URL=http://localhost:8091/api \
-            --env-var TOKEN="{{TOKEN}}" \
-            --env-var user_id="1" || echo "Update-User tests failed" >> failed_tests.txt
+            --env-var BASE_API_URL="$BASE_API_URL" \
+            --env-var TOKEN="$TOKEN" \
+            --env-var user_id="1" \
+            --reporters cli,json \
+            --reporter-json-export update_user_results.json \
+            --bail || echo "Update-User tests had failures" >> test_failures.log
 
       - name: Run Change-Password tests 🔑
         run: |
+          echo "🔑 Running Change-Password tests..."
+          
           newman run HW07_postman_collection.json \
             --folder "Change-Password" \
             --iteration-data password_change.csv \
-            --env-var BASE_API_URL=http://localhost:8091/api \
-            --env-var TOKEN="{{TOKEN}}" || echo "Change-Password tests failed" >> failed_tests.txt
+            --env-var BASE_API_URL="$BASE_API_URL" \
+            --env-var TOKEN="$TOKEN" \
+            --reporters cli,json \
+            --reporter-json-export change_password_results.json \
+            --bail || echo "Change-Password tests had failures" >> test_failures.log
 
-      - name: Check overall result ✅/❌
+      - name: Generate test summary 📊
+        if: always()
         run: |
-          if [ -f failed_tests.txt ]; then
-            echo "Some Postman test suites failed:"
-            cat failed_tests.txt
-            exit 1
-          else
-            echo "All Postman test suites passed!"
+          echo "📊 Generating test summary..."
+          
+          if [ -f update_user_results.json ]; then
+            echo "=== UPDATE USER TEST RESULTS ===" >> test_summary.txt
+            echo "Total tests: $(jq -r '.run.stats.tests.total // 0' update_user_results.json)" >> test_summary.txt
+            echo "Passed: $(jq -r '.run.stats.tests.passed // 0' update_user_results.json)" >> test_summary.txt
+            echo "Failed: $(jq -r '.run.stats.tests.failed // 0' update_user_results.json)" >> test_summary.txt
+            echo "" >> test_summary.txt
           fi
           
-      - name: Stop Docker services
+          if [ -f change_password_results.json ]; then
+            echo "=== CHANGE PASSWORD TEST RESULTS ===" >> test_summary.txt
+            echo "Total tests: $(jq -r '.run.stats.tests.total // 0' change_password_results.json)" >> test_summary.txt
+            echo "Passed: $(jq -r '.run.stats.tests.passed // 0' change_password_results.json)" >> test_summary.txt
+            echo "Failed: $(jq -r '.run.stats.tests.failed // 0' change_password_results.json)" >> test_summary.txt
+            echo "" >> test_summary.txt
+          fi
+          
+          echo "Test summary generated:"
+          cat test_summary.txt
+
+      - name: Check overall result �
+        run: |
+          echo "� Checking overall test results..."
+          
+          TOTAL_FAILURES=0
+          
+          if [ -f update_user_results.json ]; then
+            UPDATE_FAILURES=$(jq -r '.run.stats.tests.failed // 0' update_user_results.json)
+            TOTAL_FAILURES=$((TOTAL_FAILURES + UPDATE_FAILURES))
+          fi
+          
+          if [ -f change_password_results.json ]; then
+            PASSWORD_FAILURES=$(jq -r '.run.stats.tests.failed // 0' change_password_results.json)
+            TOTAL_FAILURES=$((TOTAL_FAILURES + PASSWORD_FAILURES))
+          fi
+          
+          if [ -f test_failures.log ]; then
+            echo "❌ Test execution failures detected:"
+            cat test_failures.log | sed 's/^/  - /'
+            TOTAL_FAILURES=$((TOTAL_FAILURES + 1))
+          fi
+          
+          if [ $TOTAL_FAILURES -gt 0 ]; then
+            echo "❌ Total failures: $TOTAL_FAILURES"
+            exit 1
+          else
+            echo "✅ All Postman test suites passed successfully!"
+          fi
+
+      - name: Upload test results 📤
         if: always()
-        run: docker compose down
+        uses: actions/upload-artifact@v4
+        with:
+          name: postman-test-results
+          path: |
+            *.json
+            *.txt
+            *.log
+          retention-days: 30
+          
+      - name: Stop Docker services 🛑
+        if: always()
+        run: |
+          echo "🛑 Stopping Docker services..."
+          docker compose down -v
+          docker system prune -f
