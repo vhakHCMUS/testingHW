@@ -151,6 +151,27 @@ jobs:
         run: |
           echo "👤 Running Update-User tests..."
           
+          # Check if CSV file exists and show some info
+          if [ -f "users_update.csv" ]; then
+            echo "✅ users_update.csv found"
+            echo "CSV file has $(wc -l < users_update.csv) lines"
+            echo "First few lines of CSV:"
+            head -n 3 users_update.csv
+          else
+            echo "❌ users_update.csv not found!"
+            ls -la *.csv
+            exit 1
+          fi
+          
+          # Check if Postman collection exists
+          if [ -f "HW07_postman_collection.json" ]; then
+            echo "✅ HW07_postman_collection.json found"
+          else
+            echo "❌ HW07_postman_collection.json not found!"
+            ls -la *.json
+            exit 1
+          fi
+          
           newman run HW07_postman_collection.json \
             --folder "Update-User" \
             --iteration-data users_update.csv \
@@ -159,11 +180,24 @@ jobs:
             --env-var user_id="1" \
             --reporters cli,json \
             --reporter-json-export update_user_results.json \
-            --bail || echo "Update-User tests had failures" >> test_failures.log
+            --verbose \
+            || echo "Update-User tests had failures" >> test_failures.log
 
       - name: Run Change-Password tests 🔑
         run: |
           echo "🔑 Running Change-Password tests..."
+          
+          # Check if CSV file exists and show some info
+          if [ -f "password_change.csv" ]; then
+            echo "✅ password_change.csv found"
+            echo "CSV file has $(wc -l < password_change.csv) lines"
+            echo "First few lines of CSV:"
+            head -n 3 password_change.csv
+          else
+            echo "❌ password_change.csv not found!"
+            ls -la *.csv
+            exit 1
+          fi
           
           newman run HW07_postman_collection.json \
             --folder "Change-Password" \
@@ -172,19 +206,35 @@ jobs:
             --env-var TOKEN="$TOKEN" \
             --reporters cli,json \
             --reporter-json-export change_password_results.json \
-            --bail || echo "Change-Password tests had failures" >> test_failures.log
+            --verbose \
+            || echo "Change-Password tests had failures" >> test_failures.log
 
       - name: Generate test summary 📊
         if: always()
         run: |
           echo "📊 Generating test summary..."
           
+          echo "=== FILES IN WORKSPACE ===" >> test_summary.txt
+          ls -la *.csv *.json >> test_summary.txt 2>/dev/null || echo "No CSV/JSON files found" >> test_summary.txt
+          echo "" >> test_summary.txt
+          
           if [ -f update_user_results.json ]; then
             echo "=== UPDATE USER TEST RESULTS ===" >> test_summary.txt
             echo "Total tests: $(jq -r '.run.stats.tests.total // 0' update_user_results.json)" >> test_summary.txt
             echo "Passed: $(jq -r '.run.stats.tests.passed // 0' update_user_results.json)" >> test_summary.txt
             echo "Failed: $(jq -r '.run.stats.tests.failed // 0' update_user_results.json)" >> test_summary.txt
+            echo "Iterations: $(jq -r '.run.stats.iterations.total // 0' update_user_results.json)" >> test_summary.txt
+            echo "Requests: $(jq -r '.run.stats.requests.total // 0' update_user_results.json)" >> test_summary.txt
             echo "" >> test_summary.txt
+            
+            # Show any failures
+            if [ "$(jq -r '.run.stats.tests.failed // 0' update_user_results.json)" -gt 0 ]; then
+              echo "=== UPDATE USER FAILURES ===" >> test_summary.txt
+              jq -r '.run.failures[]? | "- " + .error.name + ": " + .error.message' update_user_results.json >> test_summary.txt 2>/dev/null || echo "Could not extract failure details" >> test_summary.txt
+              echo "" >> test_summary.txt
+            fi
+          else
+            echo "❌ update_user_results.json not found" >> test_summary.txt
           fi
           
           if [ -f change_password_results.json ]; then
@@ -192,10 +242,21 @@ jobs:
             echo "Total tests: $(jq -r '.run.stats.tests.total // 0' change_password_results.json)" >> test_summary.txt
             echo "Passed: $(jq -r '.run.stats.tests.passed // 0' change_password_results.json)" >> test_summary.txt
             echo "Failed: $(jq -r '.run.stats.tests.failed // 0' change_password_results.json)" >> test_summary.txt
+            echo "Iterations: $(jq -r '.run.stats.iterations.total // 0' change_password_results.json)" >> test_summary.txt
+            echo "Requests: $(jq -r '.run.stats.requests.total // 0' change_password_results.json)" >> test_summary.txt
             echo "" >> test_summary.txt
+            
+            # Show any failures
+            if [ "$(jq -r '.run.stats.tests.failed // 0' change_password_results.json)" -gt 0 ]; then
+              echo "=== CHANGE PASSWORD FAILURES ===" >> test_summary.txt
+              jq -r '.run.failures[]? | "- " + .error.name + ": " + .error.message' change_password_results.json >> test_summary.txt 2>/dev/null || echo "Could not extract failure details" >> test_summary.txt
+              echo "" >> test_summary.txt
+            fi
+          else
+            echo "❌ change_password_results.json not found" >> test_summary.txt
           fi
           
-          echo "Test summary generated:"
+          echo "=== COMPLETE TEST SUMMARY ===" 
           cat test_summary.txt
 
       - name: Check overall result �
